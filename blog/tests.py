@@ -40,6 +40,7 @@ class BlogTests(TestCase):
         self.assertContains(response, "A good title")
         self.assertTemplateUsed(response, "post_detail.html")
     def test_post_createview(self): # new
+        self.client.login(username="testuser", password="secret")
         response = self.client.post(
             reverse("post_new"),
             {
@@ -52,16 +53,19 @@ class BlogTests(TestCase):
         self.assertEqual(Post.objects.last().title, "New title")
         self.assertEqual(Post.objects.last().body, "New text")
     def test_post_updateview(self): # new
+        self.client.login(username="testuser", password="secret")
         response = self.client.post(
-            reverse("post_edit", args="1"),
+            reverse("post_edit", kwargs={"pk": self.post.pk}),
             {
             "title": "Updated title",
             "body": "Updated text",
             },
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(Post.objects.last().title, "Updated title")
-        self.assertEqual(Post.objects.last().body, "Updated text")
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.title, "Updated title")
     def test_post_deleteview(self): # new
-        response = self.client.post(reverse("post_delete", args="1"))
+        self.client.login(username="testuser", password="secret")
+        response = self.client.post(reverse("post_delete", kwargs={"pk": self.post.pk}))
         self.assertEqual(response.status_code, 302)
+        self.assertFalse(Post.objects.filter(pk=self.post.pk).exists())
